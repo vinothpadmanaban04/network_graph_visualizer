@@ -1,0 +1,181 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(to right, #f4f4f9, #eaeaea); /* Soft gradient */
+    color: #333;
+    line-height: 1.6; /* Improved readability */
+}
+
+h1, h2, h4 {
+    color: #2c3e50;
+}
+
+.container {
+    display: flex; /* Flexbox layout */
+    justify-content: space-between; /* Space between panels */
+}
+
+/* Header Styles */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Adjusts space between title and upload form */
+    margin-bottom: 20px; /* Space below header */
+}
+
+.header h1 {
+    margin: 0; /* Remove default margin */
+    font-size: 2rem; /* Increased font size for more emphasis */
+    transition: color 0.3s; /* Smooth color transition */
+}
+
+.header h1:hover {
+    color: #3498db; /* Change color on hover */
+}
+
+/* File Upload Styles */
+.file-upload {
+    display: flex;
+    align-items: center; /* Align items vertically */
+    gap: 10px; /* Space between input and button */
+}
+
+.file-upload input[type="file"] {
+    padding: 10px; /* Add padding for better usability */
+    border: 2px solid #3498db; /* Border for the file input */
+    border-radius: 5px; /* Rounded corners */
+    transition: border-color 0.3s; /* Smooth transition */
+}
+
+.file-upload input[type="file"]:focus {
+    border-color: #2980b9; /* Change border color on focus */
+}
+
+/* Button Styles */
+button {
+    padding: 10px 15px; /* Improved button padding */
+    border: none;
+    border-radius: 5px;
+    background-color: #3498db; /* Primary button color */
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s; /* Smooth effects */
+    text-align: center;
+    font-size: 1rem; /* Increased font size for buttons */
+}
+
+button:hover {
+    background-color: #2980b9; /* Darker shade on hover */
+    transform: scale(1.05); /* Slightly increase size on hover */
+}
+
+/* Left Panel */
+.left-panel {
+    width: 30%; /* Adjust width as needed */
+    padding: 10px; /* Add padding for spacing */
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s; /* Smooth hover effect */
+}
+
+.left-panel:hover {
+    transform: translateY(-5px); /* Lift effect on hover */
+}
+
+.left-panel h2 {
+    margin-top: 0;
+    font-size: 1.5rem; /* Increased heading size */
+}
+
+/* Recently Uploaded Files List */
+#recent-files {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#recent-files li {
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;
+    padding: 15px; /* Increased padding for better spacing */
+    border-radius: 5px; /* Rounded corners */
+    background-color: #f9f9f9; /* Subtle background color */
+    transition: background-color 0.3s, transform 0.3s; /* Smooth background change */
+}
+
+#recent-files li:hover {
+    background-color: #eaeaea; /* Highlight on hover */
+    transform: scale(1.02); /* Slightly lift effect on hover */
+}
+
+#recent-files div {
+    display: flex; 
+    gap: 10px; /* Increased gap between buttons */
+}
+
+#recent-files li:last-child {
+    border-bottom: none;
+}
+
+/* Input Styles */
+input[type="range"] {
+    width: 100%;
+    margin: 10px 0;
+}
+
+input[type="color"] {
+    border: none;
+    height: 30px;
+    width: 40px; 
+    margin-left: 10px; 
+}
+
+/* Right Panel */
+.right-panel {
+    width: 70%; /* Adjust width as needed */
+    padding: 10px; /* Add padding for spacing */
+}
+
+#graph-container {
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+    height: 500px; /* Set height for the graph */
+    border: 1px solid #ccc; /* Optional border for visibility */
+    padding: 10px;
+    background-color: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Added shadow for depth */
+}
+
+/* Export Graph Button */
+button#exportGraphBtn {
+    padding: 10px 15px;
+    background-color: #2ecc71; /* Export button color */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s; /* Smooth effects */
+    margin-top: 20px;
+    display: block;
+    width: 100%; /* Full width */
+}
+
+button#exportGraphBtn:hover {
+    background-color: #27ae60; /* Darker shade on hover */
+    transform: scale(1.05); /* Slightly increase size on hover */
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+    .left-panel, .right-panel {
+        width: 100%;
+    }
+}

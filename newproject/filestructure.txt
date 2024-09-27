@@ -1,0 +1,66 @@
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'hash',
+        'USER': 'vinoth',
+        'PASSWORD': '0000',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+
+
+
+
+
+LEARNDJANGO/
+│
+├── newproject/
+│   ├── graph_app/
+│   │   ├── __pycache__/
+│   │   ├── migrations/
+│   │   │   └── __init__.py  # Placeholder for migrations
+│   │   ├── static/
+│   │   │   ├── graph_app/    # Namespace for static files related to graph_app
+│   │   │   │   ├── css/
+│   │   │   │   │   └── styles.css
+│   │   │   │   ├── images/
+│   │   │   │   └── js/
+│   │   │   │       └── networkGraph.js
+│   │   ├── templates/
+│   │   │   ├── graph_app/    # Namespace for templates related to graph_app
+│   │   │   │   ├── home.html
+│   │   │   │   ├── success.html
+│   │   │   │   ├── upload.html
+│   │   │   │   ├── visualize.html
+│   │   │   │   └── index.html
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── forms.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   │
+│   ├── newproject/
+│   │   ├── __pycache__/
+│   │   ├── __init__.py
+│   │   ├── asgi.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py
+│   ├── manage.py
+│
+├── venv/
+│   ├── Include/
+│   ├── Lib/
+│   ├── Scripts/
+│   └── pyvenv.cfg
+
+
+
+
+
+{% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">

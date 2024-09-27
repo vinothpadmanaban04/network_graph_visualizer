@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualize Data</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/networkgraph.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script> <!-- Exporting module -->
+    <script src="https://code.highcharts.com/modules/export-data.js"></script> <!-- Export Data module -->
+
+    <!-- Load static files -->
+    {% load static %}
+    
+    <!-- Link to your CSS file -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}" type="text/css">
+
+</head>
+<body>
+    <div class="header">
+        <h1>Graph Visualization</h1>
+        <div class="file-upload">
+            <form method="POST" action="{% url 'upload_csv' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="file" name="file" accept=".csv" required>
+                <button type="submit">Upload</button>
+            </form> 
+        </div>
+    </div>
+    <div class="container">
+        <!-- Left panel -->
+        <div class="left-panel">
+            <h2>Recently Uploaded Files</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <ul id="recent-files">
+                    {% for csv in uploaded_csvs %}
+                        <li id="file-{{ csv.id }}">
+                            <span>{{ csv.file_name }}</span>
+                            <div>
+                                <button type="button" name="visualize" 
+                                        onclick="visualizeCsv('{{ csv.id }}')">Visualize</button>
+                                <button type="button" name="delete" 
+                                        onclick="deleteCsv('{{ csv.id }}')">Delete</button>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <input type="hidden" name="csv_id" id="csv_id" value="">
+            </form>
+            <hr>
+            <h4>Adjust Node Size</h4>
+            <input type="range" id="nodeSizeRange" min="5" max="50" value="20" oninput="adjustNodeSize(this.value)">
+            <label for="nodeSizeRange">Node Size: <span id="nodeSizeLabel">20</span></label>
+            
+            <h4>Change Node Color</h4>
+            <input type="color" id="nodeColorPicker" value="#00FF00" oninput="adjustNodeColor(this.value)">
+            <label for="nodeColorPicker">Node Color</label>
+
+            <h4>Change Link Color</h4>
+            <input type="color" id="linkColorPicker" value="#FF0000" oninput="adjustLinkColor(this.value)">
+            <label for="linkColorPicker">Link Color</label>
+            <hr>
+
+            <!-- Export Graph Button -->
+            <button id="exportGraphBtn" onclick="exportGraph()">Export Graph</button>
+        </div>
+    
+        <!-- Right panel -->
+        <div class="right-panel">
+            <div id="graph-container"></div>
+        </div>
+    </div>
+    
+    <script>
+        let currentCsvId = null;
+        let currentNodeSize = 20; // Default node size
+        let currentNodeColor = '#00FF00'; // Default node color
+        let chartInstance = null;  
+        let currentLinkColor = '#FF0000'; // Default link color
+
+        function visualizeCsv(csvId) {
+            currentCsvId = csvId;
+            document.getElementById('csv_id').value = csvId;
+            fetch(`{% url 'visualize_data' %}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `csv_id=${csvId}&visualize=1`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.graph_data) {
+                    renderGraph(data.graph_data);
+                } else {
+                    alert('No data found for visualization.');
+                }
+            })
+            .catch(error => console.error('Error fetching graph data:', error));
+            console.log("Succesfully file uploaded")
+        }
+
+        function deleteCsv(csvId) {
+            if (confirm('Are you sure you want to delete this file?')) {
+                fetch(`{% url 'visualize_data' %}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: `csv_id=${csvId}&delete=1`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const fileItem = document.getElementById(`file-${csvId}`);
+                        if (fileItem) {
+                            fileItem.remove();
+                        }
+                        if (currentCsvId === csvId) {
+                            clearGraph();
+                        }
+                        reloadFileList();
+                    } else {
+                        alert('Error deleting the file.');
+                    }
+                })
+                .catch(error => console.error('Error deleting file:', error));
+            }
+        }
+
+        function reloadFileList() {
+            fetch(`{% url 'get_recent_files' %}`)
+                .then(response => response.json())
+                .then(data => {
+                    const recentFilesContainer = document.getElementById('recent-files');
+                    recentFilesContainer.innerHTML = '';
+    
+                    data.uploaded_csvs.forEach(file => {
+                        const listItem = document.createElement('li');
+                        listItem.id = `file-${file.id}`;
+                        listItem.innerHTML = `
+                            <span>${file.file_name}</span>
+                            <div>
+                                <button type="button" name="visualize" 
+                                        onclick="visualizeCsv('${file.id}')">Visualize</button>
+                                <button type="button" name="delete" 
+                                        onclick="deleteCsv('${file.id}')">Delete</button>
+                            </div>
+                        `;
+                        recentFilesContainer.appendChild(listItem);
+                    });
+                })
+                .catch(error => console.error('Error fetching updated file list:', error));
+        }
+        function clearGraph() {
+            const container = document.getElementById('graph-container');
+            container.innerHTML = '';
+            currentCsvId = null;
+        }
+
+        function renderGraph(graphData) {
+            const nodes = [];
+            const links = [];
+        
+            // Process data for nodes and links
+            for (const edge of Object.values(graphData)) {
+                nodes.push({ id: edge.from });
+                nodes.push({ id: edge.to });
+                // Adjust link thickness based on weight
+                links.push({ from: edge.from, to: edge.to, weight: edge.weight, width: edge.weight });
+            }
+        
+            const uniqueNodes = Array.from(new Set(nodes.map(node => node.id)))
+                .map(id => ({ id }));
+            
+            // Highcharts graph initialization
+            Highcharts.chart('graph-container', {
+                title: { text: 'Network Graph' },
+                chart: {
+                    type: 'networkgraph',
+                    height: '500px'
+                },
+                plotOptions: {
+                    networkgraph: {
+                        keys: ['from', 'to'],
+                        layoutAlgorithm: {
+                            enableSimulation: true,
+                            friction: -0.9
+                        },
+                        marker: {
+                            radius: currentNodeSize,  // Dynamic node size
+                            fillColor: currentNodeColor  // Dynamic node color
+                        },
+                        link: {
+                            width: 2,   // Default link width
+                            color: currentLinkColor  // Link color
+                        },
+                        dataLabels: {
+                            enabled: true,
+                            format: '{point.id}',
+                            style: {
+                                fontSize: '14px',
+                                color: '#fff',
+                                fontWeight: 'bold',
+                                textOutline: 'none'
+                            }
+                        }
+                    }
+                },
+                series: [{
+                    type: 'networkgraph',
+                    dataLabels: {
+                        enabled: true,
+                        linkFormat: '',
+                        format: '{point.id}',
+                        style: {
+                            fontSize: '14px',
+                            color: '#fff',
+                            fontWeight: 'bold',
+                            textOutline: 'none'
+                        }
+                    },
+                    data: links,
+                    nodes: uniqueNodes
+                }],
+                tooltip: {
+                    pointFormat: '<b>{point.from} to {point.to}</b><br>Weight: {point.weight}'
+                }
+            });
+
+            // Custom arrow rendering
+            addArrowsToLinks();
+
+            // Original function to add arrows to the links between nodes
+            (function(H) {
+                H.wrap(H.seriesTypes.networkgraph.prototype.pointClass.prototype, 'getLinkPath', function(p) {
+                    var right = this.toNode,
+                        left = this.fromNode;
+
+                    var angle = Math.atan((left.plotX - right.plotX) /
+                        (left.plotY - right.plotY));
+
+                    if (angle) {
+                        let path = ['M', left.plotX, left.plotY, right.plotX, right.plotY],
+                            lastPoint = left,
+                            nextLastPoint = right,
+                            pointRadius = 45,
+                            arrowLength = 20,
+                            arrowWidth = 10;
+
+                        if (left.plotY < right.plotY) {
+                            path.push(
+                                nextLastPoint.plotX - pointRadius * Math.sin(angle),
+                                nextLastPoint.plotY - pointRadius * Math.cos(angle),
+                            );
+                            path.push(
+                                nextLastPoint.plotX - pointRadius * Math.sin(angle) - arrowLength * Math.sin(angle) - arrowWidth * Math.cos(angle),
+                                nextLastPoint.plotY - pointRadius * Math.cos(angle) - arrowLength * Math.cos(angle) + arrowWidth * Math.sin(angle),
+                            );
+
+                            path.push(
+                                nextLastPoint.plotX - pointRadius * Math.sin(angle),
+                                nextLastPoint.plotY - pointRadius * Math.cos(angle),
+                            );
+                            path.push(
+                                nextLastPoint.plotX - pointRadius * Math.sin(angle) - arrowLength * Math.sin(angle) + arrowWidth * Math.cos(angle),
+                                nextLastPoint.plotY - pointRadius * Math.cos(angle) - arrowLength * Math.cos(angle) - arrowWidth * Math.sin(angle),
+                            );
+
+                        } else {
+                            path.push(
+                                nextLastPoint.plotX + pointRadius * Math.sin(angle),
+                                nextLastPoint.plotY + pointRadius * Math.cos(angle),
+                            );
+                            path.push(
+                                nextLastPoint.plotX + pointRadius * Math.sin(angle) + arrowLength * Math.sin(angle) - arrowWidth * Math.cos(angle),
+                                nextLastPoint.plotY + pointRadius * Math.cos(angle) + arrowLength * Math.cos(angle) + arrowWidth * Math.sin(angle),
+                            );
+                            path.push(
+                                nextLastPoint.plotX + pointRadius * Math.sin(angle),
+                                nextLastPoint.plotY + pointRadius * Math.cos(angle),
+                            );
+                            path.push(
+                                nextLastPoint.plotX + pointRadius * Math.sin(angle) + arrowLength * Math.sin(angle) + arrowWidth * Math.cos(angle),
+                                nextLastPoint.plotY + pointRadius * Math.cos(angle) + arrowLength * Math.cos(angle) - arrowWidth * Math.sin(angle),
+                            );
+                        }
+
+                        return path;
+                    }
+                    return [
+                        ['M', left.plotX || 0, left.plotY || 0],
+                        ['L', right.plotX || 0, right.plotY || 0],
+                    ];
+                });
+            }(Highcharts));
+        }
+        // function to adjust node size
+        function adjustNodeSize(newSize) {
+           
+            currentNodeSize = parseInt(newSize);
+            document.getElementById('nodeSizeLabel').innerText = newSize;
+            
+           
+            if (currentCsvId) {
+                visualizeCsv(currentCsvId);  
+            }
+        }
+
+        // New function to adjust link color
+        function adjustLinkColor(newColor) {
+           
+            currentLinkColor = newColor;
+
+           
+            if (currentCsvId) {
+                visualizeCsv(currentCsvId);  
+            }
+}
+
+        function adjustNodeColor(newColor) {
+            // Update the current node color
+            currentNodeColor = newColor;
+            
+           
+            if (currentCsvId) {
+                visualizeCsv(currentCsvId); 
+            }
+        }
+        // Function to export the graph as an image
+        function exportGraph() {
+            if (chartInstance) {
+                chartInstance.exportChart(); 
+            } else {
+                alert('Please visualize a graph before exporting.');
+            }
+        }
+
+        
+
+
+        function addArrowsToLinks() {
+            // This function is retained to provide flexibility in adding any additional arrow logic
+        }
+
+    </script>
+</body>
+</html>
